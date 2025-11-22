@@ -1,0 +1,1 @@
+internal sram of chip
