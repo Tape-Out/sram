@@ -23,6 +23,7 @@ module sram_mmio #(
     /* verilator lint_on  UNUSEDSIGNAL */
     input  wire [3:0]               mem_wstrb,
     output reg  [31:0]              mem_rdata,
+
     output reg                      irq,
     input  wire                     eoi
 );
@@ -52,8 +53,7 @@ module sram_mmio #(
     always @(posedge clk) begin
         if (!resetn) begin
             mem_ready <= 0;
-        end
-        mem_ready <= mem_valid && !mem_instr;
+        end else mem_ready <= mem_valid && !mem_instr;
     end
 
     always @(posedge clk) begin
