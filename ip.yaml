@@ -1,0 +1,42 @@
+name: sram
+version: 0.1.0
+spec: '0.1'
+kind: ip
+lang: bsv
+identity:
+  slug: sram-tapeout-bsv
+  display_name: On chip memory
+  summary: A register array today; the interface will not change when a macro is available.
+  category: memory
+  subcategories:
+  - sram
+  ip_family: sram
+  integration_profile:
+  - apb4-slave
+  maturity: planned
+contract:
+  version: 1
+  ctrl:
+    shape: flat
+    aw: 16
+    dw: 32
+params:
+  words:
+    type: int
+    default: 1024
+    range:
+    - 64
+    - 4096
+    desc: 字数。寄存器阵列，每字约 32 个触发器
+emit:
+- kind: bsv
+  package: Sram
+  module: mkSram
+  config_type: SramCfg
+  interface: SramIfc
+  ctrl: regs
+- kind: verilog-flat
+  bus: apb4
+deps:
+  hwcore: ^0.1
+  amba: ^0.1
