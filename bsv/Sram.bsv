@@ -22,14 +22,21 @@ module mkSram#(SramCfg cfg)(SramIfc#(aw, dw, words))
     provisos (Mul#(TDiv#(dw, 8), 8, dw), Add#(_a, TLog#(words), aw),
               Bits#(Bit#(dw), dw));
 
-  RegFile#(Bit#(TLog#(words)), Bit#(dw)) mem <- mkRegFileFull;
+  // 按说的字数分配，不按下一个 2 的幂。mkRegFileFull 走的是索引类型的
+  // 全量程：192 字的索引要 8 位，于是它真给 256 字，面积与 256 字一模一样
+  // （实测两者都是 94,372.60）。价目表在两点之间线性插值，于是低估三成，
+  // 「恒为高估」的承诺当场作废——这是证伪点量出来的。
+  RegFile#(Bit#(TLog#(words)), Bit#(dw)) mem <-
+    mkRegFile(0, fromInteger(valueOf(words) - 1));
 
   interface RegIf regs;
     method ActionValue#(RegRsp#(dw)) access(RegReq#(aw, dw) r);
       Bit#(TLog#(words)) i = truncate(r.addr >> 2);
-      Bit#(dw) old = mem.sub(i);
-      if (r.write) mem.upd(i, applyStrb(old, r.wdata, r.wstrb));
-      return RegRsp { rdata: old, err: False };
+      // 索引位宽是 2 的幂，字数不一定是——超出的地址要报错，不能悄悄绕回来
+      Bool oob = i > fromInteger(valueOf(words) - 1);
+      Bit#(dw) old = oob ? 0 : mem.sub(i);
+      if (r.write && !oob) mem.upd(i, applyStrb(old, r.wdata, r.wstrb));
+      return RegRsp { rdata: old, err: oob };
     endmethod
   endinterface
 endmodule

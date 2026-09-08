@@ -40,3 +40,41 @@ emit:
 deps:
   hwcore: ^0.1
   amba: ^0.1
+area:
+  base:
+    points:
+      '64': 23782.36
+      '128': 47143.6
+      '256': 94372.6
+      '512': 184818.2
+    per: words
+  margin: 0.0048
+  model: points-additive
+  error:
+    bound: 0.0086
+    sign: over
+    note: powers of two are the measured grid and one hundred and ninety two is the
+      falsification point between them; interpolation came in 0.38 percent under,
+      so the curve is lifted by 0.0048 to keep every prediction at or above what was
+      measured. The default of one thousand and twenty four words is extrapolated
+      along the last segment rather than synthesised, because thirty thousand flip
+      flops once took the machine out of memory
+  measured:
+  - at:
+      words: 64
+    um2: 23782.36
+  - at:
+      words: 128
+    um2: 47143.6
+  - at:
+      words: 256
+    um2: 94372.6
+  - at:
+      words: 512
+    um2: 184818.2
+  corner:
+    tool: ecc
+    pdk: ics55
+    freq_mhz: 100
+    measured: '2026-09-09'
+    gen_digest: sha256:48ec3cd6bb4c1c69
