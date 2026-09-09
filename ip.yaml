@@ -6,7 +6,8 @@ lang: bsv
 identity:
   slug: sram-tapeout-bsv
   display_name: On chip memory
-  summary: A register array today; the interface will not change when a macro is available.
+  summary: A register array today; the interface will not change when a macro is
+    available.
   category: memory
   subcategories:
   - sram
@@ -28,6 +29,11 @@ params:
     - 64
     - 4096
     desc: 字数。寄存器阵列，每字约 32 个触发器
+features:
+  sync:
+    type: bool
+    default: false
+    desc: 同步存储：下一拍才答，也就是 SRAM/ROM 宏的形状。换宏的前提
 emit:
 - kind: bsv
   package: Sram
@@ -53,12 +59,12 @@ area:
   error:
     bound: 0.0086
     sign: over
-    note: powers of two are the measured grid and one hundred and ninety two is the
-      falsification point between them; interpolation came in 0.38 percent under,
-      so the curve is lifted by 0.0048 to keep every prediction at or above what was
-      measured. The default of one thousand and twenty four words is extrapolated
-      along the last segment rather than synthesised, because thirty thousand flip
-      flops once took the machine out of memory
+    note: powers of two are the measured grid and one hundred and ninety two is 
+      the falsification point between them; interpolation came in 0.38 percent 
+      under, so the curve is lifted by 0.0048 to keep every prediction at or 
+      above what was measured. The default of one thousand and twenty four words
+      is extrapolated along the last segment rather than synthesised, because 
+      thirty thousand flip flops once took the machine out of memory
   measured:
   - at:
       words: 64
@@ -76,5 +82,11 @@ area:
     tool: ecc
     pdk: ics55
     freq_mhz: 100
-    measured: '2026-09-09'
-    gen_digest: sha256:48ec3cd6bb4c1c69
+    measured: '2026-09-10'
+    gen_digest: sha256:bff3c6d403e7f798
+test:
+  # sync 这一维现在量不出真数：中立顶层只露 regs 那个口，sync 开着时
+  # regs 什么也不做，整片存储被综合器扫掉，量到的是空壳（2.24 µm²）。
+  # 等包装层能露出 slow 口再量，那之前不许把空壳记成实测。
+  noarea:
+  - sync

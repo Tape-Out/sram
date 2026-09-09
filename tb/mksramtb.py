@@ -14,13 +14,114 @@ out.mkdir(parents=True, exist_ok=True)
 cfg = json.loads(sys.argv[2]) if len(sys.argv) > 2 else {}
 label = cfg.get("label", "")
 words = int(cfg.get("knobs", {}).get("words", 1024))
+sync = bool(cfg.get("knobs", {}).get("sync", False))
 
 TOP = words - 1
 V0 = 0xA5A50001
 V1 = 0x5A5A0002
 VT = 0xDEADBEEF
 
-txt = f'''package Sram{label}Tb;
+if sync:
+    txt = f'''package Sram{label}Tb;
+
+import RegIf::*;
+import Sram::*;
+
+// 由 tb/mksramtb.py 生成，勿手改。这一点：words={words} sync=True
+// 同步那一路：请求顶着不动，等到 rspValid 才算完；而且**不许同拍就答**——
+// 同拍答的话它就不是宏的形状，接宏时会错一拍。
+
+(* synthesize *)
+module mkSram{label}Tb(Empty);
+  SramIfc#(16, 32, {words}) d <- mkSram(SramCfg {{ sync: True }});
+
+  Reg#(Bit#(8))  ph  <- mkReg(0);
+  Reg#(Bit#(32)) cyc <- mkReg(0);
+  Reg#(Bool)     bad <- mkReg(False);
+  Reg#(Bool)     hold <- mkReg(False);
+  Reg#(RegReq#(16, 32)) q <- mkRegU;
+  Reg#(Bit#(8))  took <- mkReg(0);
+
+  // 打一拍的快照：读被测件的组合输出与写它的请求不能在同一条规则里
+  Reg#(Bool)          rv <- mkReg(False);
+  Reg#(RegRsp#(32))   rx <- mkRegU;
+
+  rule snap;
+    rv <= d.slow.rspValid;
+    rx <= d.slow.rsp;
+  endrule
+
+  rule drive;
+    d.slow.req(hold, q);
+  endrule
+
+  rule tick_;
+    cyc <= cyc + 1;
+    if (cyc > 20000) begin
+      $display("TIMEOUT at step %0d", ph);
+      $finish(1);
+    end
+  endrule
+
+  rule run;
+    case (ph)
+      0: action
+           q    <= RegReq {{ addr: 16'h0004, write: True,
+                             wdata: 32'h{V1:08X}, wstrb: 4'hF }};
+           hold <= True;
+           took <= 0;
+           ph   <= 1;
+         endaction
+      1: action
+           took <= took + 1;
+           if (rv) begin
+             if (took < 1) begin
+               $display("FAIL a synchronous memory answered in the same cycle");
+               bad <= True;
+             end
+             hold <= False;
+             ph   <= 2;
+           end
+         endaction
+      2: action
+           q    <= RegReq {{ addr: 16'h0004, write: False,
+                             wdata: 0, wstrb: 4'hF }};
+           hold <= True;
+           took <= 0;
+           ph   <= 3;
+         endaction
+      3: action
+           took <= took + 1;
+           if (rv) begin
+             // 一条规则里对 bad 只留一条写路径，两个 if 各写一次就是 G0004
+             Bool wrong = False;
+             if (rx.rdata != 32'h{V1:08X}) begin
+               $display("FAIL read back %08h, want {V1:08X}", rx.rdata);
+               wrong = True;
+             end
+             if (took < 1) begin
+               $display("FAIL a synchronous memory answered in the same cycle");
+               wrong = True;
+             end
+             if (wrong) bad <= True;
+             hold <= False;
+             ph   <= 4;
+           end
+         endaction
+      default: action
+                 if (bad) $display("FAILED");
+                 else $display("PASS sram: the synchronous port answers on a "
+                               + "later cycle and gives the data back");
+                 $finish(bad ? 1 : 0);
+               endaction
+    endcase
+  endrule
+endmodule
+
+endpackage
+'''
+else:
+    txt = f'''package Sram{label}Tb;
 
 import RegIf::*;
 import Sram::*;
@@ -32,7 +133,8 @@ typedef enum {{ Write, Read, Strb, StrbCheck, Done }}
 
 (* synthesize *)
 module mkSram{label}Tb(Empty);
-  SramIfc#(16, 32, {words}) d <- mkSram(SramCfg {{ none: ? }});
+  SramIfc#(16, 32, {words}) d <- mkSram(
+      SramCfg {{ sync: {"True" if sync else "False"} }});
 
   Reg#(Phase)    ph  <- mkReg(Write);
   Reg#(Bit#(8))  s   <- mkReg(0);
