@@ -34,12 +34,21 @@ features:
     type: bool
     default: false
     desc: 同步存储：下一拍才答，也就是 SRAM/ROM 宏的形状。换宏的前提
+    area:
+      points:
+        '64': 1030.96
+        '128': 1249.64
+        '256': 1866.76
+        '512': 282.8
+      per: words
 emit:
 - kind: bsv
   package: Sram
   module: mkSram
   config_type: SramCfg
   interface: SramIfc
+  ctrl_slow: slow
+  slow_when: sync
   ctrl: regs
 - kind: verilog-flat
   bus: apb4
@@ -68,25 +77,39 @@ area:
   measured:
   - at:
       words: 64
+      sync: false
     um2: 23782.36
   - at:
       words: 128
+      sync: false
     um2: 47143.6
   - at:
       words: 256
+      sync: false
     um2: 94372.6
   - at:
       words: 512
+      sync: false
     um2: 184818.2
+  - at:
+      words: 64
+      sync: true
+    um2: 24813.32
+  - at:
+      words: 128
+      sync: true
+    um2: 48393.24
+  - at:
+      words: 256
+      sync: true
+    um2: 96239.36
+  - at:
+      words: 512
+      sync: true
+    um2: 185101.0
   corner:
     tool: ecc
     pdk: ics55
     freq_mhz: 100
     measured: '2026-09-10'
     gen_digest: sha256:bff3c6d403e7f798
-test:
-  # sync 这一维现在量不出真数：中立顶层只露 regs 那个口，sync 开着时
-  # regs 什么也不做，整片存储被综合器扫掉，量到的是空壳（2.24 µm²）。
-  # 等包装层能露出 slow 口再量，那之前不许把空壳记成实测。
-  noarea:
-  - sync
