@@ -27,7 +27,7 @@ if sync:
 import RegIf::*;
 import Sram::*;
 
-// 由 tb/mksramtb.py 生成，勿手改。这一点：words={words} sync=True
+// 由 htest/mksramtb.py 生成，勿手改。这一点：words={words} sync=True
 // 同步那一路：请求顶着不动，等到 rspValid 才算完；而且**不许同拍就答**——
 // 同拍答的话它就不是宏的形状，接宏时会错一拍。
 
@@ -126,7 +126,7 @@ else:
 import RegIf::*;
 import Sram::*;
 
-// 由 tb/mksramtb.py 生成，勿手改。这一点：words={words}
+// 由 htest/mksramtb.py 生成，勿手改。这一点：words={words}
 
 typedef enum {{ Write, Read, Strb, StrbCheck, Done }}
   Phase deriving (Bits, Eq);
