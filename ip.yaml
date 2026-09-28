@@ -113,3 +113,7 @@ area:
     freq_mhz: 100
     measured: '2026-09-10'
     gen_digest: sha256:bff3c6d403e7f798
+dt:
+  node: memory
+  # 报实际容量，不是译码窗口
+  size: { knob: words, scale: 4 }
